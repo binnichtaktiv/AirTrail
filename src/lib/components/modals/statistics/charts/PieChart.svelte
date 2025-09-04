@@ -11,9 +11,11 @@
     title: string;
     data: Record<string, number>;
   } = $props();
+
   const noData = $derived.by(
     () => Object.values(data).reduce((a, b) => a + b, 0) === 0,
   );
+
   const placeholderOrData = $derived.by(() => {
     if (noData) {
       return { 'No data': 1 };
@@ -26,19 +28,23 @@
   });
 </script>
 
+<!-- Außen: Border entfernt -->
 <div
   class={cn(
-    'relative w-full border-[0.5px] border-zinc-300 rounded-sm p-2 dark:border-zinc-800 h-[250px]',
+    'relative w-full rounded-sm p-2 h-[250px] border-0', // border-0 statt border-[0.5px] border-zinc-300
+    'dark:border-0'                                      // sicherheitshalber auch im Dark-Mode
   )}
 >
   <div class="absolute top-4 right-4">
     <Expand size={14} />
   </div>
+
+  <!-- Innen: Verlauf schon transparent gemacht; jetzt Border ebenfalls weg -->
   <div
     class={cn(
-      'grid grid-cols-2 items-center border rounded-sm h-full',
-      ' from-white bg-linear-to-br to-zinc-200/60 border-zinc-300 shadow-[2px_0_8px_rgba(0,0,0,0.1)]',
-      'dark:from-zinc-950 dark:to-zinc-900/60 bg-linear-to-br  dark:border-zinc-900/50 dark:shadow-inner',
+      'grid grid-cols-2 items-center h-full rounded-sm',
+      'bg-transparent dark:bg-transparent',              // kein Verlauf
+      'border-0 dark:border-0 shadow-none'              // keine sichtbare Border/Shadow
     )}
   >
     <div class={cn('h-[160px]')}>
@@ -54,6 +60,7 @@
           : ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
       />
     </div>
+
     <div>
       {#if title}
         <div class="flex items-center justify-between pr-2">
