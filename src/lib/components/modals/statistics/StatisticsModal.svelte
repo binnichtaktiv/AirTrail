@@ -15,15 +15,9 @@
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
 
-  let {
-    open = $bindable<boolean>(),
-    allFlights,
-  }: {
-    open?: boolean;
-    allFlights: FlightData[];
-  } = $props();
+  let { open = $bindable<boolean>(), allFlights }: { open?: boolean; allFlights: FlightData[] } = $props();
 
-  // Only show completed flights
+  // Nur abgeschlossene Flüge (unverändert)
   const flights = $derived.by(() =>
     allFlights.filter(
       (f) =>
@@ -44,7 +38,7 @@
   let airports = $state(0);
   let earthCircumnavigations = $state(0);
 
-  // Expanded chart state
+  // Expanded chart state (unverändert)
   let activeChart: ChartKey | null = $state(null);
   const user = $derived(page.data.user);
   const ctx = $derived.by(() => ({ userId: user?.id }));
@@ -58,23 +52,14 @@
     if (open) {
       setTimeout(() => {
         flightCount = flights.length;
-        totalDistance = flights.reduce(
-          (acc, curr) => (acc += curr.distance ?? 0),
-          0,
-        );
+        totalDistance = flights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0);
         earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
           flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
-        totalDurationParts = {
-          days: duration.days,
-          hours: duration.hours,
-          minutes: duration.minutes,
-        };
+        totalDurationParts = { days: duration.days, hours: duration.hours, minutes: duration.minutes };
         airports = new Set(
-          flights
-            .filter((f) => f.from && f.to)
-            .flatMap((f) => [f.from!.name, f.to!.name]),
+          flights.filter((f) => f.from && f.to).flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
       }, 200);
     } else {
@@ -100,69 +85,103 @@
 
 <Modal
   bind:open
-  class="max-w-full h-full overflow-y-auto rounded-none!"
+  class="max-w-full h-full overflow-y-auto rounded-none! p-0 md:p-6 bg-gradient-to-br from-slate-950 to-slate-900"
   dialogOnly
   closeOnEscape={false}
 >
   {#if activeChart}
-    <ChartDrillDown
-      chartKey={activeChart}
-      data={activeChartData}
-      {flights}
-      onBack={() => (activeChart = null)}
-    />
+    <div class="mx-auto w-full max-w-7xl px-4 md:px-6 py-6 animate-in fade-in-0 zoom-in-95 duration-200">
+      <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-2xl shadow-black/30 backdrop-blur-xl">
+        <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(800px_400px_at_10%_-20%,rgba(56,189,248,0.15),transparent_60%),radial-gradient(700px_400px_at_120%_10%,rgba(244,63,94,0.12),transparent_60%)]" />
+        <div class="p-3 md:p-4 flex items-center gap-2 border-b border-white/10">
+          <button
+            class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm text-slate-200"
+            on:click={() => (activeChart = null)}
+          >
+            ← Zurück
+          </button>
+          <span class="text-sm text-slate-300">Detailansicht</span>
+        </div>
+        <div class="p-4 md:p-6">
+          <ChartDrillDown chartKey={activeChart} data={activeChartData} {flights} onBack={() => (activeChart = null)} />
+        </div>
+      </div>
+    </div>
   {:else}
-    <div class="space-y-4">
-      <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
-      <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard class="py-4 px-8">
-          <h3 class="text-sm font-medium">Flights</h3>
-          <span class="text-2xl font-bold">
-            <NumberFlow value={flightCount} />
-          </span>
+    <div class="mx-auto w-full max-w-7xl px-4 md:px-6 py-6 animate-in fade-in-0 zoom-in-95 duration-200">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-sky-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent">
+          Statistics
+        </h2>
+      </div>
+
+      <!-- KPI Grid (nur Aussehen) -->
+      <div class="mt-4 grid gap-4 pb-2 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard class="relative rounded-2xl p-[1.5px] bg-[conic-gradient(from_140deg,rgba(56,189,248,0.35),rgba(168,85,247,0.30),rgba(244,63,94,0.30),rgba(56,189,248,0.35))]">
+          <div class="rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-black/30 px-6 py-5">
+            <h3 class="text-[11px] uppercase tracking-wider text-slate-400">Flights</h3>
+            <span class="mt-1 block text-3xl md:text-4xl font-semibold text-slate-100">
+              <NumberFlow value={flightCount} />
+            </span>
+          </div>
         </StatsCard>
-        <StatsCard class="py-4 px-8">
-          <h3 class="text-sm font-medium">Distance</h3>
-          <span class="text-2xl font-bold">
-            <NumberFlow
-              value={isMetric ? totalDistance : kmToMiles(totalDistance)}
-              format={{
-                style: 'unit',
-                unit: isMetric ? 'kilometer' : 'mile',
-                unitDisplay: 'short',
-                maximumFractionDigits: 0,
-              }}
-            />
-            (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
-          </span>
+
+        <StatsCard class="relative rounded-2xl p-[1.5px] bg-[conic-gradient(from_140deg,rgba(56,189,248,0.35),rgba(168,85,247,0.30),rgba(244,63,94,0.30),rgba(56,189,248,0.35))]">
+          <div class="rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-black/30 px-6 py-5">
+            <h3 class="text-[11px] uppercase tracking-wider text-slate-400">Distance</h3>
+            <span class="mt-1 block text-3xl md:text-4xl font-semibold text-slate-100">
+              <NumberFlow
+                value={isMetric ? totalDistance : kmToMiles(totalDistance)}
+                format={{ style: 'unit', unit: isMetric ? 'kilometer' : 'mile', unitDisplay: 'short', maximumFractionDigits: 0 }}
+              />
+              <span class="ml-1 text-base text-slate-400">(<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)</span>
+            </span>
+          </div>
         </StatsCard>
-        <StatsCard class="py-4 px-8">
-          <h3 class="text-sm font-medium">Duration</h3>
-          <span class="text-2xl font-bold">
-            {#if totalDuration.days}
-              <NumberFlow value={totalDurationParts.days} />d
-            {/if}
-            {#if totalDuration.hours}
-              <NumberFlow value={totalDurationParts.hours} />h
-            {/if}
-            {#if totalDuration.minutes}
-              <NumberFlow value={totalDurationParts.minutes} />m
-            {:else if !totalDuration.days && !totalDuration.hours}
-              0m
-            {/if}
-          </span>
+
+        <StatsCard class="relative rounded-2xl p-[1.5px] bg-[conic-gradient(from_140deg,rgba(56,189,248,0.35),rgba(168,85,247,0.30),rgba(244,63,94,0.30),rgba(56,189,248,0.35))]">
+          <div class="rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-black/30 px-6 py-5">
+            <h3 class="text-[11px] uppercase tracking-wider text-slate-400">Duration</h3>
+            <span class="mt-1 block text-3xl md:text-4xl font-semibold text-slate-100">
+              {#if totalDuration.days}<NumberFlow value={totalDurationParts.days} />d{/if}
+              {#if totalDuration.hours}<span class="ml-1"><NumberFlow value={totalDurationParts.hours} />h</span>{/if}
+              {#if totalDuration.minutes}<span class="ml-1"><NumberFlow value={totalDurationParts.minutes} />m</span>
+              {:else if !totalDuration.days && !totalDuration.hours}<span class="ml-1">0m</span>{/if}
+            </span>
+          </div>
         </StatsCard>
-        <StatsCard class="py-4 px-8">
-          <h3 class="text-sm font-medium">Airports</h3>
-          <span class="text-2xl font-bold">
-            <NumberFlow value={airports} />
-          </span>
+
+        <StatsCard class="relative rounded-2xl p-[1.5px] bg-[conic-gradient(from_140deg,rgba(56,189,248,0.35),rgba(168,85,247,0.30),rgba(244,63,94,0.30),rgba(56,189,248,0.35))]">
+          <div class="rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-black/30 px-6 py-5">
+            <h3 class="text-[11px] uppercase tracking-wider text-slate-400">Airports</h3>
+            <span class="mt-1 block text-3xl md:text-4xl font-semibold text-slate-100">
+              <NumberFlow value={airports} />
+            </span>
+          </div>
         </StatsCard>
       </div>
-      <PieCharts {flights} onOpenChart={(key) => (activeChart = key)} />
-      <div class="flex flex-col md:flex-row gap-4">
-        <FlightsPerMonth {flights} />
-        <FlightsPerWeekday {flights} />
+
+      <!-- Nur Abstand um das Grid – kein zweiter Rahmen -->
+      <div class="mt-4">
+        <PieCharts {flights} onOpenChart={(key) => (activeChart = key)} />
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="relative rounded-2xl p-[1.5px] bg-[conic-gradient(from_140deg,rgba(56,189,248,0.35),rgba(168,85,247,0.30),rgba(244,63,94,0.30),rgba(56,189,248,0.35))]">
+          <div class="rounded-2xl border border-white/10 ">
+            <div class="p-4 md:p-6">
+              <FlightsPerMonth {flights} />
+            </div>
+          </div>
+        </div>
+
+        <div class="relative rounded-2xl p-[1.5px] bg-[conic-gradient(from_140deg,rgba(56,189,248,0.35),rgba(168,85,247,0.30),rgba(244,63,94,0.30),rgba(56,189,248,0.35))]">
+          <div class="rounded-2xl border border-white/10 ">
+            <div class="p-4 md:p-6">
+              <FlightsPerWeekday {flights} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   {/if}
